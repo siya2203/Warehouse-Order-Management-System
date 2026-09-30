@@ -1,0 +1,22 @@
+# Compiled executable
+warehouse.exe
+warehouse
+
+# Object files
+*.o
+*.obj
+
+# Visual Studio Code
+.vscode/
+
+# Code::Blocks
+*.depend
+*.layout
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
