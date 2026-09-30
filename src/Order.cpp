@@ -15,46 +15,43 @@ Order::Order(
     customerName = customer;
     items = orderItems;
     type = orderType;
-
     status = OrderStatus::CREATED;
 }
-
 
 int Order::getOrderId() const
 {
     return orderId;
 }
 
-
 string Order::getCustomerName() const
 {
     return customerName;
 }
-
 
 vector<OrderItem>& Order::getItems()
 {
     return items;
 }
 
+const vector<OrderItem>& Order::getItems() const
+{
+    return items;
+}
 
 OrderType Order::getType() const
 {
     return type;
 }
 
-
 OrderStatus Order::getStatus() const
 {
     return status;
 }
 
-
 void Order::setStatus(OrderStatus newStatus)
 {
     status = newStatus;
 }
-
 
 string Order::getStatusString() const
 {
@@ -88,38 +85,42 @@ string Order::getStatusString() const
     return "UNKNOWN";
 }
 
-
 string Order::getTypeString() const
 {
     if (type == OrderType::URGENT)
-    {
         return "URGENT";
-    }
 
     return "STANDARD";
 }
-
 
 void Order::display() const
 {
     cout << "\n-----------------------------" << endl;
 
-    cout << "Order ID   : " << orderId << endl;
-    cout << "Customer   : " << customerName << endl;
-    cout << "Type       : " << getTypeString() << endl;
-    cout << "Status     : " << getStatusString() << endl;
+    cout << "Order ID   : "
+         << orderId << endl;
+
+    cout << "Customer   : "
+         << customerName << endl;
+
+    cout << "Type       : "
+         << getTypeString() << endl;
+
+    cout << "Status     : "
+         << getStatusString() << endl;
 
     cout << "Items:" << endl;
 
     for (const auto& item : items)
     {
-        cout << "  SKU: " << item.sku
-             << " | Quantity: " << item.quantity
-             << " | Picked: " << item.pickedQuantity
+        cout << "  SKU: "
+             << item.sku
+             << " | Quantity: "
+             << item.quantity
+             << " | Picked: "
+             << item.pickedQuantity
              << endl;
     }
 
     cout << "-----------------------------" << endl;
 }
-
-

@@ -25,11 +25,9 @@ struct Product
     );
 };
 
-
 class Inventory
 {
 private:
-
     // Hash map:
     // SKU -> Product
     unordered_map<string, Product> products;
@@ -37,6 +35,8 @@ private:
 public:
 
     void loadFromFile(string filename);
+
+    void saveToFile(string filename) const;
 
     bool addProduct(Product product);
 
@@ -57,7 +57,11 @@ public:
 
     Product* getProduct(string sku);
 
+    // Search by SKU
     void searchProduct(string sku) const;
+
+    // Search by name or category
+    void searchProducts(string keyword) const;
 
     void displayInventory() const;
 

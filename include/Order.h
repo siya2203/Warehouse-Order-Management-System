@@ -62,7 +62,11 @@ public:
 
     string getCustomerName() const;
 
+    // Used when modifying order items
     vector<OrderItem>& getItems();
+
+    // Used when only reading order items
+    const vector<OrderItem>& getItems() const;
 
     OrderType getType() const;
 

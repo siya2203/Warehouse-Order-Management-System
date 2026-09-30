@@ -10,19 +10,6 @@ Warehouse::Warehouse()
     : warehouseGraph(8),
       nextOrderId(1001)
 {
-    /*
-        Warehouse locations:
-
-        0 = Receiving
-        1 = Zone A
-        2 = Zone B
-        3 = Zone C
-        4 = Picking Station
-        5 = Packing Station
-        6 = Dispatch
-        7 = Storage
-    */
-
     warehouseGraph.addEdge(0, 1, 2);
     warehouseGraph.addEdge(1, 2, 3);
     warehouseGraph.addEdge(2, 3, 2);
@@ -46,7 +33,14 @@ void Warehouse::loadInventory(string filename)
 {
     inventory.loadFromFile(filename);
 
-    cout << "\nInventory loaded successfully." << endl;
+    cout << "\nInventory loaded successfully."
+         << endl;
+}
+
+bool Warehouse::orderIdExists(int orderId) const
+{
+    return orderIndex.find(orderId)
+           != orderIndex.end();
 }
 
 void Warehouse::loadOrders(string filename)
@@ -55,7 +49,8 @@ void Warehouse::loadOrders(string filename)
 
     if (!file.is_open())
     {
-        cout << "Could not open orders file." << endl;
+        cout << "Could not open orders file."
+             << endl;
         return;
     }
 
@@ -82,6 +77,17 @@ void Warehouse::loadOrders(string filename)
 
         int id = stoi(idText);
 
+        // Prevent duplicate order IDs
+        if (orderIdExists(id))
+        {
+            cout << "Duplicate order ID found: "
+                 << id
+                 << ". Skipping order."
+                 << endl;
+
+            continue;
+        }
+
         OrderType type;
 
         if (typeText == "URGENT")
@@ -96,7 +102,8 @@ void Warehouse::loadOrders(string filename)
 
         while (getline(itemStream, itemData, ','))
         {
-            size_t separator = itemData.find(':');
+            size_t separator =
+                itemData.find(':');
 
             if (separator == string::npos)
                 continue;
@@ -105,9 +112,16 @@ void Warehouse::loadOrders(string filename)
                 itemData.substr(0, separator);
 
             int quantity =
-                stoi(itemData.substr(separator + 1));
+                stoi(
+                    itemData.substr(
+                        separator + 1
+                    )
+                );
 
-            items.emplace_back(sku, quantity);
+            items.emplace_back(
+                sku,
+                quantity
+            );
         }
 
         Order* order = new Order(
@@ -117,38 +131,60 @@ void Warehouse::loadOrders(string filename)
             type
         );
 
-        // Restore order status
         if (statusText == "ALLOCATED")
-            order->setStatus(OrderStatus::ALLOCATED);
-
+        {
+            order->setStatus(
+                OrderStatus::ALLOCATED
+            );
+        }
         else if (statusText == "PICKING")
-            order->setStatus(OrderStatus::PICKING);
-
+        {
+            order->setStatus(
+                OrderStatus::PICKING
+            );
+        }
         else if (statusText == "PICKED")
-            order->setStatus(OrderStatus::PICKED);
-
+        {
+            order->setStatus(
+                OrderStatus::PICKED
+            );
+        }
         else if (statusText == "PACKED")
-            order->setStatus(OrderStatus::PACKED);
-
+        {
+            order->setStatus(
+                OrderStatus::PACKED
+            );
+        }
         else if (statusText == "READY_FOR_DISPATCH")
+        {
             order->setStatus(
                 OrderStatus::READY_FOR_DISPATCH
             );
-
+        }
         else if (statusText == "DISPATCHED")
-            order->setStatus(OrderStatus::DISPATCHED);
-
+        {
+            order->setStatus(
+                OrderStatus::DISPATCHED
+            );
+        }
         else if (statusText == "CANCELLED")
-            order->setStatus(OrderStatus::CANCELLED);
-
+        {
+            order->setStatus(
+                OrderStatus::CANCELLED
+            );
+        }
         else
-            order->setStatus(OrderStatus::CREATED);
+        {
+            order->setStatus(
+                OrderStatus::CREATED
+            );
+        }
 
         allOrders.push_back(order);
         orderIndex[id] = order;
 
-        // Put active CREATED orders back into queues
-        if (order->getStatus() == OrderStatus::CREATED)
+        if (order->getStatus() ==
+            OrderStatus::CREATED)
         {
             if (type == OrderType::URGENT)
                 urgentOrders.push(order);
@@ -156,24 +192,103 @@ void Warehouse::loadOrders(string filename)
                 standardOrders.push(order);
         }
 
-        // Keep future order IDs unique
         if (id >= nextOrderId)
             nextOrderId = id + 1;
     }
 
     file.close();
 
-    cout << "Orders loaded successfully." << endl;
+    cout << "Orders loaded successfully."
+         << endl;
+}
+
+void Warehouse::updateOrderFile()
+{
+    ofstream file(
+        "data/orders.txt",
+        ios::out | ios::trunc
+    );
+
+    if (!file.is_open())
+    {
+        cout << "Warning: Could not update "
+                "orders file."
+             << endl;
+
+        return;
+    }
+
+    for (const Order* order : allOrders)
+    {
+        file << order->getOrderId()
+             << "|"
+             << order->getCustomerName()
+             << "|"
+             << order->getTypeString()
+             << "|"
+             << order->getStatusString()
+             << "|";
+
+        for (size_t i = 0;
+             i < order->getItems().size();
+             i++)
+        {
+            file << order->getItems()[i].sku
+                 << ":"
+                 << order->getItems()[i].quantity;
+
+            if (i + 1 <
+                order->getItems().size())
+            {
+                file << ",";
+            }
+        }
+
+        file << endl;
+    }
+
+    file.close();
 }
 
 bool Warehouse::validateOrder(Order* order)
 {
-    for (const auto& item : order->getItems())
+    if (order == nullptr)
+        return false;
+
+    if (order->getCustomerName().empty())
     {
+        cout << "\nCustomer name cannot "
+                "be empty."
+             << endl;
+
+        return false;
+    }
+
+    if (order->getItems().empty())
+    {
+        cout << "\nOrder must contain "
+                "at least one item."
+             << endl;
+
+        return false;
+    }
+
+    for (const auto& item :
+         order->getItems())
+    {
+        if (item.sku.empty())
+        {
+            cout << "\nSKU cannot be empty."
+                 << endl;
+
+            return false;
+        }
+
         if (item.quantity <= 0)
         {
             cout << "\nInvalid quantity for SKU: "
-                 << item.sku << endl;
+                 << item.sku
+                 << endl;
 
             return false;
         }
@@ -184,7 +299,8 @@ bool Warehouse::validateOrder(Order* order)
         if (product == nullptr)
         {
             cout << "\nInvalid SKU: "
-                 << item.sku << endl;
+                 << item.sku
+                 << endl;
 
             return false;
         }
@@ -194,7 +310,8 @@ bool Warehouse::validateOrder(Order* order)
                 item.quantity))
         {
             cout << "\nInsufficient stock for SKU: "
-                 << item.sku << endl;
+                 << item.sku
+                 << endl;
 
             return false;
         }
@@ -208,8 +325,15 @@ void Warehouse::addOrder(
     vector<OrderItem> items
 )
 {
+    int newOrderId = nextOrderId++;
+
+    while (orderIdExists(newOrderId))
+    {
+        newOrderId = nextOrderId++;
+    }
+
     Order* order = new Order(
-        nextOrderId++,
+        newOrderId,
         customer,
         items,
         OrderType::STANDARD
@@ -222,49 +346,21 @@ void Warehouse::addOrder(
     }
 
     allOrders.push_back(order);
-    orderIndex[order->getOrderId()] = order;
+
+    orderIndex[
+        order->getOrderId()
+    ] = order;
+
     standardOrders.push(order);
 
-    cout << "\nStandard order created successfully.";
+    cout << "\nStandard order created "
+            "successfully.";
+
     cout << "\nOrder ID: "
          << order->getOrderId()
          << endl;
 
-    // Save order to file
-    ofstream file("data/orders.txt", ios::app);
-
-    if (file.is_open())
-    {
-        file << order->getOrderId()
-             << "|"
-             << order->getCustomerName()
-             << "|"
-             << order->getTypeString()
-             << "|"
-             << order->getStatusString()
-             << "|";
-
-        for (size_t i = 0;
-             i < order->getItems().size();
-             i++)
-        {
-            file << order->getItems()[i].sku
-                 << ":"
-                 << order->getItems()[i].quantity;
-
-            if (i + 1 < order->getItems().size())
-                file << ",";
-        }
-
-        file << endl;
-
-        file.close();
-    }
-    else
-    {
-        cout << "Warning: Could not save order to file."
-             << endl;
-    }
+    updateOrderFile();
 }
 
 void Warehouse::addUrgentOrder(
@@ -272,8 +368,15 @@ void Warehouse::addUrgentOrder(
     vector<OrderItem> items
 )
 {
+    int newOrderId = nextOrderId++;
+
+    while (orderIdExists(newOrderId))
+    {
+        newOrderId = nextOrderId++;
+    }
+
     Order* order = new Order(
-        nextOrderId++,
+        newOrderId,
         customer,
         items,
         OrderType::URGENT
@@ -286,49 +389,21 @@ void Warehouse::addUrgentOrder(
     }
 
     allOrders.push_back(order);
-    orderIndex[order->getOrderId()] = order;
+
+    orderIndex[
+        order->getOrderId()
+    ] = order;
+
     urgentOrders.push(order);
 
-    cout << "\nUrgent order created successfully.";
+    cout << "\nUrgent order created "
+            "successfully.";
+
     cout << "\nOrder ID: "
          << order->getOrderId()
          << endl;
 
-    // Save order to file
-    ofstream file("data/orders.txt", ios::app);
-
-    if (file.is_open())
-    {
-        file << order->getOrderId()
-             << "|"
-             << order->getCustomerName()
-             << "|"
-             << order->getTypeString()
-             << "|"
-             << order->getStatusString()
-             << "|";
-
-        for (size_t i = 0;
-             i < order->getItems().size();
-             i++)
-        {
-            file << order->getItems()[i].sku
-                 << ":"
-                 << order->getItems()[i].quantity;
-
-            if (i + 1 < order->getItems().size())
-                file << ",";
-        }
-
-        file << endl;
-
-        file.close();
-    }
-    else
-    {
-        cout << "Warning: Could not save order to file."
-             << endl;
-    }
+    updateOrderFile();
 }
 
 void Warehouse::viewPendingOrders() const
@@ -341,7 +416,8 @@ void Warehouse::viewPendingOrders() const
     }
     else
     {
-        queue<Order*> temp = standardOrders;
+        queue<Order*> temp =
+            standardOrders;
 
         while (!temp.empty())
         {
@@ -372,7 +448,6 @@ void Warehouse::processNextOrder()
 {
     Order* order = nullptr;
 
-    // Urgent orders are processed first
     if (!urgentOrders.empty())
     {
         order = urgentOrders.top();
@@ -380,8 +455,6 @@ void Warehouse::processNextOrder()
 
         cout << "\nProcessing URGENT order...\n";
     }
-
-    // Otherwise process standard order
     else if (!standardOrders.empty())
     {
         order = standardOrders.front();
@@ -389,7 +462,6 @@ void Warehouse::processNextOrder()
 
         cout << "\nProcessing STANDARD order...\n";
     }
-
     else
     {
         cout << "\nNo pending orders.\n";
@@ -405,80 +477,114 @@ void Warehouse::processOrder(Order* order)
          << order->getOrderId()
          << endl;
 
-    // ALLOCATION
-    order->setStatus(OrderStatus::ALLOCATED);
+    order->setStatus(
+        OrderStatus::ALLOCATED
+    );
 
-    for (auto& item : order->getItems())
+    updateOrderFile();
+
+    for (auto& item :
+         order->getItems())
     {
         if (!inventory.deductStock(
                 item.sku,
                 item.quantity))
         {
-            cout << "\nInventory allocation failed.\n";
+            cout << "\nInventory allocation "
+                    "failed.\n";
 
             order->setStatus(
                 OrderStatus::CANCELLED
             );
 
+            updateOrderFile();
+
             return;
         }
     }
 
-    cout << "Inventory allocated successfully.\n";
+    inventory.saveToFile(
+        "data/inventory.txt"
+    );
 
-    // PICKING
-    order->setStatus(OrderStatus::PICKING);
+    cout << "Inventory allocated "
+            "successfully.\n";
+
+    order->setStatus(
+        OrderStatus::PICKING
+    );
+
+    updateOrderFile();
 
     generatePickingList(order);
 
-    for (auto& item : order->getItems())
+    for (auto& item :
+         order->getItems())
     {
-        item.pickedQuantity = item.quantity;
+        item.pickedQuantity =
+            item.quantity;
     }
 
-    order->setStatus(OrderStatus::PICKED);
+    order->setStatus(
+        OrderStatus::PICKED
+    );
 
-    cout << "\nAll items picked successfully.\n";
+    updateOrderFile();
 
-    // PACKING
+    cout << "\nAll items picked "
+            "successfully.\n";
+
     cout << "\nPacking order...\n";
 
-    order->setStatus(OrderStatus::PACKED);
+    order->setStatus(
+        OrderStatus::PACKED
+    );
+
+    updateOrderFile();
 
     string history =
         "Order " +
-        to_string(order->getOrderId()) +
+        to_string(
+            order->getOrderId()
+        ) +
         " packed";
 
     packingHistory.push(history);
 
     cout << "Order packed successfully.\n";
 
-    // READY FOR DISPATCH
     order->setStatus(
         OrderStatus::READY_FOR_DISPATCH
     );
 
-    // DISPATCH
+    updateOrderFile();
+
     cout << "\nDispatching order...\n";
 
     order->setStatus(
         OrderStatus::DISPATCHED
     );
 
+    updateOrderFile();
+
     cout << "\nOrder "
          << order->getOrderId()
          << " dispatched successfully!\n";
 }
 
-void Warehouse::generatePickingList(Order* order)
+void Warehouse::generatePickingList(
+    Order* order
+)
 {
     cout << "\n========== PICKING LIST ==========\n";
 
-    for (const auto& item : order->getItems())
+    for (const auto& item :
+         order->getItems())
     {
         Product* product =
-            inventory.getProduct(item.sku);
+            inventory.getProduct(
+                item.sku
+            );
 
         if (product != nullptr)
         {
@@ -505,9 +611,18 @@ void Warehouse::generatePickingList(Order* order)
     cout << "==================================\n";
 }
 
-void Warehouse::searchProduct(string sku) const
+void Warehouse::searchProduct(
+    string sku
+) const
 {
     inventory.searchProduct(sku);
+}
+
+void Warehouse::searchProducts(
+    string keyword
+) const
+{
+    inventory.searchProducts(keyword);
 }
 
 void Warehouse::findRoute(
@@ -529,7 +644,8 @@ void Warehouse::findRoute(
     }
     else
     {
-        for (int location : bfsPath)
+        for (int location :
+             bfsPath)
         {
             cout << location << " ";
         }
@@ -551,7 +667,8 @@ void Warehouse::findRoute(
     }
     else
     {
-        for (int location : dijkstraPath)
+        for (int location :
+             dijkstraPath)
         {
             cout << location << " ";
         }
@@ -568,11 +685,17 @@ void Warehouse::viewInventory() const
 
 void Warehouse::showReports() const
 {
-    reportManager.showOrderReport(allOrders);
+    reportManager.showOrderReport(
+        allOrders
+    );
 
-    reportManager.showDispatchedOrders(allOrders);
+    reportManager.showDispatchedOrders(
+        allOrders
+    );
 
-    reportManager.showPendingOrders(allOrders);
+    reportManager.showPendingOrders(
+        allOrders
+    );
 }
 
 void Warehouse::displayPackingHistory() const
@@ -581,11 +704,14 @@ void Warehouse::displayPackingHistory() const
 
     if (packingHistory.empty())
     {
-        cout << "No packing operations recorded.\n";
+        cout << "No packing operations "
+                "recorded.\n";
+
         return;
     }
 
-    stack<string> temp = packingHistory;
+    stack<string> temp =
+        packingHistory;
 
     while (!temp.empty())
     {
@@ -604,7 +730,7 @@ void Warehouse::displayMenu()
     cout << "2. Add Urgent Order\n";
     cout << "3. View Pending Orders\n";
     cout << "4. Process Next Order\n";
-    cout << "5. Search Product by SKU\n";
+    cout << "5. Search Product\n";
     cout << "6. Find Warehouse Route\n";
     cout << "7. View Inventory\n";
     cout << "8. View Reports\n";
@@ -635,7 +761,11 @@ void Warehouse::run()
 
                 cout << "Enter customer name: ";
                 cin.ignore();
-                getline(cin, customer);
+
+                getline(
+                    cin,
+                    customer
+                );
 
                 cout << "Enter number of items: ";
                 cin >> numberOfItems;
@@ -689,12 +819,44 @@ void Warehouse::run()
 
             case 5:
             {
-                string sku;
+                int searchChoice;
 
-                cout << "Enter SKU: ";
-                cin >> sku;
+                cout << "\n========== PRODUCT SEARCH ==========\n";
+                cout << "1. Search by SKU\n";
+                cout << "2. Search by Name/Category\n";
+                cout << "Enter your choice: ";
 
-                searchProduct(sku);
+                cin >> searchChoice;
+
+                if (searchChoice == 1)
+                {
+                    string sku;
+
+                    cout << "Enter SKU: ";
+                    cin >> sku;
+
+                    searchProduct(sku);
+                }
+                else if (searchChoice == 2)
+                {
+                    string keyword;
+
+                    cout << "Enter product name "
+                            "or category: ";
+
+                    cin.ignore();
+
+                    getline(
+                        cin,
+                        keyword
+                    );
+
+                    searchProducts(keyword);
+                }
+                else
+                {
+                    cout << "\nInvalid search option.\n";
+                }
 
                 break;
             }
@@ -720,10 +882,21 @@ void Warehouse::run()
                 cout << "Enter destination: ";
                 cin >> destination;
 
-                findRoute(
-                    start,
-                    destination
-                );
+                if (start < 0 ||
+                    start > 7 ||
+                    destination < 0 ||
+                    destination > 7)
+                {
+                    cout << "\nInvalid warehouse "
+                            "location.\n";
+                }
+                else
+                {
+                    findRoute(
+                        start,
+                        destination
+                    );
+                }
 
                 break;
             }
@@ -741,11 +914,14 @@ void Warehouse::run()
                 break;
 
             case 10:
-                cout << "\nThank you for using the system!\n";
+                cout << "\nThank you for using "
+                        "the system!\n";
+
                 return;
 
             default:
-                cout << "\nInvalid choice. Try again.\n";
+                cout << "\nInvalid choice. "
+                        "Try again.\n";
         }
     }
 }

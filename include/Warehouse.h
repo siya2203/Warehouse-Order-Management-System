@@ -25,51 +25,45 @@ struct UrgentOrderComparator
 class Warehouse
 {
 private:
-    // Standard orders -> FIFO Queue
     queue<Order*> standardOrders;
 
-    // Urgent orders -> Priority Queue
     priority_queue<
         Order*,
         vector<Order*>,
         UrgentOrderComparator
     > urgentOrders;
 
-    // Recent packing operations -> Stack
     stack<string> packingHistory;
 
-    // Stores all orders
     vector<Order*> allOrders;
 
-    // Fast order lookup
     unordered_map<int, Order*> orderIndex;
 
-    // Inventory management
     Inventory inventory;
 
-    // Warehouse routes
     Graph warehouseGraph;
 
-    // Report management
     ReportManager reportManager;
 
-    // Generates order IDs
     int nextOrderId;
 
-    // Internal functions
     bool validateOrder(Order* order);
+
+    bool orderIdExists(int orderId) const;
+
     void processOrder(Order* order);
+
     void generatePickingList(Order* order);
+
+    void updateOrderFile();
 
 public:
     Warehouse();
 
     ~Warehouse();
 
-    // Inventory
     void loadInventory(string filename);
 
-    // Orders
     void loadOrders(string filename);
 
     void addOrder(
@@ -82,30 +76,27 @@ public:
         vector<OrderItem> items
     );
 
-    // Order processing
     void viewPendingOrders() const;
+
     void processNextOrder();
 
-    // Product search
     void searchProduct(string sku) const;
 
-    // Warehouse routing
+    void searchProducts(string keyword) const;
+
     void findRoute(
         int start,
         int destination
     );
 
-    // Inventory display
     void viewInventory() const;
 
-    // Reports
     void showReports() const;
 
-    // Packing history
     void displayPackingHistory() const;
 
-    // User interface
     void displayMenu();
+
     void run();
 };
 
