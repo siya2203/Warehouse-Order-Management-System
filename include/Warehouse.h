@@ -10,6 +10,7 @@
 #include <stack>
 #include <vector>
 #include <unordered_map>
+#include <string>
 
 using namespace std;
 
@@ -24,17 +25,17 @@ struct UrgentOrderComparator
 class Warehouse
 {
 private:
-    // Standard orders → FIFO Queue
+    // Standard orders -> FIFO Queue
     queue<Order*> standardOrders;
 
-    // Urgent orders → Priority Queue
+    // Urgent orders -> Priority Queue
     priority_queue<
         Order*,
         vector<Order*>,
         UrgentOrderComparator
     > urgentOrders;
 
-    // Recent packing operations → Stack
+    // Recent packing operations -> Stack
     stack<string> packingHistory;
 
     // Stores all orders
@@ -62,12 +63,15 @@ private:
 
 public:
     Warehouse();
+
     ~Warehouse();
 
     // Inventory
     void loadInventory(string filename);
 
-    // Order creation
+    // Orders
+    void loadOrders(string filename);
+
     void addOrder(
         string customer,
         vector<OrderItem> items
