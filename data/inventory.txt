@@ -1,0 +1,8 @@
+P001|Laptop|Electronics|20|Zone-A|5
+P002|Keyboard|Electronics|50|Zone-B|10
+P003|Mouse|Electronics|75|Zone-B|15
+P004|Monitor|Electronics|15|Zone-C|5
+P005|USB-C Cable|Accessories|100|Zone-A|20
+P006|Headphones|Electronics|30|Zone-C|8
+P007|Webcam|Electronics|25|Storage|5
+P008|Printer|Office|10|Zone-C|3
